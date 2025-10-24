@@ -1,4 +1,4 @@
-# Multi-Modal COF Property Prediction Framework
+# COFAP
 
 A comprehensive deep learning framework for predicting properties of Covalent Organic Frameworks (COFs) using multiple neural network architectures and cross-attention fusion mechanisms.
 
@@ -8,7 +8,7 @@ A comprehensive deep learning framework for predicting properties of Covalent Or
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/lizihanLZH/COFAP
 cd model-code
 ```
 
@@ -132,19 +132,5 @@ python train.py --use_cache --cache_dir feature_cache
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 
-## 🔬 Citation
-
-If you use this framework in your research, please cite:
-
-```bibtex
-@article{cof_prediction_framework,
-  title={Multi-Modal Deep Learning Framework for COF Property Prediction},
-  author={Your Name},
-  journal={Journal Name},
-  year={2024}
-}
-```
-
----
 
 **Note**: This framework is designed for research purposes. For production use, additional testing and validation are recommended.
