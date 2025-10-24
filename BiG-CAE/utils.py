@@ -7,14 +7,10 @@ from pathlib import Path
 import os
 import pickle
 from concurrent.futures import ProcessPoolExecutor, as_completed
-
-# 全局多进程处理函数
-
 def process_one(args):
     i, cif_file, labels, linkers_csv_path = args
     from featurizer import get_2cg_inputs_cof
     try:
-        # 新增：将缓存文件存储到cache目录
         cache_dir = "cache"
         os.makedirs(cache_dir, exist_ok=True)
         cif_basename = os.path.basename(cif_file)
@@ -33,7 +29,6 @@ def process_one(args):
     except Exception as e:
         print(f"Error processing {cif_file}: {e}")
     return None
-
 class EarlyStopping:
     def __init__(self, prefix, patience=50):
         dt = datetime.datetime.now()
@@ -47,7 +42,6 @@ class EarlyStopping:
         self.filename = filename
         self.best_score = None
         self.early_stop = False
-    
     def step(self, score, model):
         self.timestep += 1
         if self.best_score is None:
@@ -62,39 +56,30 @@ class EarlyStopping:
             if self.counter >= self.patience:
                 self.early_stop = True
         return self.early_stop
-    
     def save_checkpoint(self, model):
         torch.save(
             {"model_state_dict": model.state_dict(), "timestep": self.timestep},
             self.filename,
         )
-    
     def load_checkpoint(self, model):
         model.load_state_dict(torch.load(self.filename)["model_state_dict"])
-
 def get_stratified_folds(y, bins=10):
     return np.searchsorted(np.percentile(y, np.linspace(100 / bins, 100, bins)), y)
-
 def get_samples(graphs, labels):
     return [(graph, label) for graph, label in zip(graphs, labels)]
-
 def collate_fn(samples):
     graphs, labels = map(list, zip(*samples))
     batched_graph = dgl.batch(graphs)
     return batched_graph, torch.tensor(labels)
-
 class COFDataset(Dataset):
-    """COF数据集类（优先cache，若无则现场建图并写入cache）"""
     def __init__(self, cif_files, labels, linkers_csv_path="linkers.csv"):
         self.cif_files = cif_files
         self.labels = labels
         self.linkers_csv_path = linkers_csv_path
         self.cache_dir = "cache"
         os.makedirs(self.cache_dir, exist_ok=True)
-
     def __len__(self):
         return len(self.cif_files)
-
     def __getitem__(self, idx):
         import pickle
         from featurizer import get_2cg_inputs_cof
@@ -115,12 +100,9 @@ class COFDataset(Dataset):
             except Exception as e:
                 print(f"写入cache失败: {cache_file}, 错误: {e}")
         return graph, self.labels[idx]
-
     def get_valid_indices(self):
         return list(range(len(self.cif_files)))
-
 def create_cof_dataloader(cif_files, labels, linkers_csv_path="linkers.csv", batch_size=32, shuffle=True, num_workers=0):
-    """创建COF数据加载器（懒加载版）"""
     dataset = COFDataset(cif_files, labels, linkers_csv_path)
     if len(dataset) == 0:
         return None
@@ -132,23 +114,14 @@ def create_cof_dataloader(cif_files, labels, linkers_csv_path="linkers.csv", bat
         num_workers=num_workers,
         pin_memory=True if torch.cuda.is_available() else False
     )
-
 def split_cof_data(cif_files, labels, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, random_state=42):
-    """分割COF数据为训练、验证和测试集"""
     from sklearn.model_selection import train_test_split
-    
     assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6, "比例之和必须为1"
-    
-    # 第一次分割：训练集 vs (验证集+测试集)
     X_train, X_temp, y_train, y_temp = train_test_split(
         cif_files, labels, test_size=(1-train_ratio), random_state=random_state, stratify=None
     )
-    
-    # 第二次分割：验证集 vs 测试集
     val_test_ratio = val_ratio / (val_ratio + test_ratio)
     X_val, X_test, y_val, y_test = train_test_split(
         X_temp, y_temp, test_size=(1-val_test_ratio), random_state=random_state, stratify=None
     )
-    
     return (X_train, y_train), (X_val, y_val), (X_test, y_test)
-
