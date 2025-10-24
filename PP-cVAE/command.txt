@@ -1,0 +1,7 @@
+1 
+
+python tune_model.py --method grid --trials 50 --fast_mode --fast_epochs 80 --metric test_r2
+
+2
+
+python train_optimized.py
